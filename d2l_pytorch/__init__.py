@@ -5,6 +5,8 @@ import torchvision
 import random
 import torch
 import sys
+from torch import nn
+
 
 def use_svg_isplay():
     display.set_matplotlib_formats('svg')
@@ -49,6 +51,7 @@ def get_fashion_mnist_labels(labels):
                    'boot']
     return text_labels
 
+
 # 3.5.1获取数据集
 def show_fashion_mnist(images, labels):
     use_svg_isplay()
@@ -59,6 +62,7 @@ def show_fashion_mnist(images, labels):
         f.axes.get_xaxis().set_visible(False)
         f.axes.get_yaxis().set_visible(False)
     plt.show()
+
 
 # 3.5.1获取数据集
 def load_data_fashion_mnist(batch_size, resize=None, root='~/Datasets/FashionMNIST'):
@@ -80,3 +84,61 @@ def load_data_fashion_mnist(batch_size, resize=None, root='~/Datasets/FashionMNI
 
     return train_iter, test_iter
 
+
+# 3.6.6计算分类准确率
+def evaluate_accuracy(data_iter, net):
+    acc_sum, n = 0.0, 0
+    for X, y in data_iter:
+        acc_sum += (net(X).argmax(dim=1) == y).float().sum().item()
+        n += y.shape[0]
+    return acc_sum / n
+
+
+# 3.6.7 训练模型
+
+def train_ch3(net, train_iter, test_iter, loss, num_epchos, batch_size, params=None, lr=None, optimizer=None):
+    for epoch in range(num_epchos):
+        train_l_sum, train_acc_sum, n = 0.0, 0.0, 0
+        for X, y in train_iter:
+            y_hat = net(X)
+            l = loss(y_hat, y).sum()
+
+            if optimizer is not None:
+                optimizer.zero_grad()
+            elif params is not None and params[0].grad is not None:
+                for param in params:
+                    param.grad.data.zero_()
+
+            l.backward()
+            if optimizer is None:
+                sgd(params, lr, batch_size)
+            else:
+                optimizer.step()
+
+            train_l_sum += l.item()
+            train_acc_sum += (y_hat.argmax(dim=1) == y).sum().item()
+            n += y.shape[0]
+        test_acc = evaluate_accuracy(test_iter, net)
+        print('epoch %d, loss %.4f, train acc %.3f,test acc %.3f' % (
+            epoch + 1, train_l_sum / n, train_acc_sum / n, test_acc))
+
+
+# 3.7.2 定义和初始化模型
+class FlattenLayer(nn.Module):
+    def __init__(self):
+        super(FlattenLayer, self).__init__()
+
+    def forward(self, x):
+        return x.view(x.shape[0], -1)
+
+
+# 3.11.4.2 定义、训练和测试模型
+def semilogy(x_vals, y_vals, x_label, y_label, x2_vals=None, y2_vals=None, legend=None, figsize=(3.5, 2.5)):
+    set_figsize(figsize)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.semilogy(x_vals,y_vals)
+    if x2_vals and y2_vals:
+        plt.semilogy(x2_vals,y2_vals,linestyle=':')
+        plt.legend(legend)
+    plt.show()
