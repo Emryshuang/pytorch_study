@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-import d2l_pytorch as d2l
+from d2l_pytorch import *
 
 # 4 多项式函数拟合实验
 

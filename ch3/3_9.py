@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-import d2l_pytorch as d2l
+import d2l_pytorch.d2l as d2l
 
 # 1 获取和读取数据
 

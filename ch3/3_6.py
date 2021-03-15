@@ -1,7 +1,7 @@
 import torch
 import torchvision
 import numpy as np
-import d2l_pytorch as d2l
+import d2l_pytorch.d2l as d2l
 
 # 1获取和读取数据
 batch_size = 256

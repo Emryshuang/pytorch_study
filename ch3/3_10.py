@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn import init
 import numpy as np
-import d2l_pytorch as d2l
+import d2l_pytorch.d2l as d2l
 
 # 1 定义模型
 num_inputs, num_outputs, num_hidden = 784, 10, 256

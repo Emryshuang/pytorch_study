@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-import d2l_pytorch as d2l
+import d2l_pytorch.d2l as d2l
 
 # 2 ⾼维线性回归实验
 n_train, n_test, num_inputs = 20, 100, 200

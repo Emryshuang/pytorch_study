@@ -3,7 +3,7 @@ import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import time
-import d2l_pytorch as d2l
+import d2l_pytorch
 import sys
 
 mnist_train = torchvision.datasets.FashionMNIST(
@@ -36,7 +36,7 @@ def get_fashion_mnist_labels(labels):
 
 
 def show_fashion_mnist(images, labels):
-    d2l.use_svg_isplay()
+    d2l_pytorch.d2l.use_svg_isplay()
     _, figs = plt.subplots(1, len(images), figsize=(12, 12))
     for f, img, lbl in zip(figs, images, labels):
         f.imshow(img.view((28, 28)).numpy())

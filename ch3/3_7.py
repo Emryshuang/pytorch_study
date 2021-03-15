@@ -2,12 +2,12 @@ import torch
 from torch import nn
 from torch.nn import init
 import numpy as np
-import d2l_pytorch
+import d2l_pytorch.d2l as d2l
 from collections import OrderedDict
 
 # 1获取和读取数据
 batch_size = 256
-train_iter, test_iter = d2l_pytorch.load_data_fashion_mnist(batch_size)
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
 # 定义和初始化模型
 num_inputs = 784
 num_outputs = 10
@@ -50,4 +50,4 @@ loss = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(net.parameters(), lr=0.1)
 # 5 训练模型
 num_epochs = 5
-d2l_pytorch.train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size, None, None, optimizer)
+d2l.train_ch3(net, train_iter, test_iter, loss, num_epochs, batch_size, None, None, optimizer)

@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pylab as plt
-import d2l_pytorch as d2l
+from d2l_pytorch import *
 
 
 # 2 激活函数
