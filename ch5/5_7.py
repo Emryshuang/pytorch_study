@@ -71,7 +71,7 @@ X = torch.rand(1, 1, 224, 224)
 for name, blk in net.named_children():
     X = blk(X)
     print(name, ' output shapeL', X.shape)
-
+print(net)
 # 3 获取数据并训练
 
 ratio = 8

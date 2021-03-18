@@ -31,6 +31,7 @@ def corr2d_multi_in_out(X, K):
 
 K = torch.stack([K, K + 1, K + 2])
 print(K.shape)
+# torch.Size([3, 2, 2, 2]) 通道数output，通道数input，高，宽
 
 print(corr2d_multi_in_out(X, K))
 
