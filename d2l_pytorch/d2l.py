@@ -9,6 +9,7 @@ import sys
 from torch import nn
 import torch.nn.functional as F
 import zipfile
+import numpy as np
 
 
 class D2l(object):
@@ -360,7 +361,8 @@ def grad_clipping(params, theta, device):
             param.grad.data *= (theta / norm)
 
 
-def train_and_predict_rnn(run, get_params, init_run_state, num_hiddens, vocab_size, device, corpus_indices, idx_to_char,
+# 6.4.7 定义模型训练函数
+def train_and_predict_rnn(rnn, get_params, init_run_state, num_hiddens, vocab_size, device, corpus_indices, idx_to_char,
                           char_to_idx, is_random_iter, num_epochs, num_steps, lr, clipping_theta, batch_size,
                           pred_period, pred_len, prefixes):
     if is_random_iter:
@@ -371,21 +373,22 @@ def train_and_predict_rnn(run, get_params, init_run_state, num_hiddens, vocab_si
     loss = nn.CrossEntropyLoss()
 
     for epoch in range(num_epochs):
-        #        print('epoch %d'% epoch)
+        # 使用相邻采样，在epoch开始时初始化隐藏状态
         if not is_random_iter:
             state = init_run_state(batch_size, num_hiddens, device)
         l_sum, n, start = 0.0, 0, time.time()
         data_iter = data_iter_fn(corpus_indices, batch_size, num_steps, device)
         for X, Y in data_iter:
+            # 使用随机采样，在每个小批量更新前初始化隐藏状态
             if is_random_iter:
                 state = init_run_state(batch_size, num_hiddens, device)
             else:
-
                 for s in state:
                     s.detach_()
+
             inputs = to_onehot(X, vocab_size)
 
-            (outputs, state) = run(inputs, state, params)
+            (outputs, state) = rnn(inputs, state, params)
 
             outputs = torch.cat(outputs, dim=0)
 
@@ -398,18 +401,20 @@ def train_and_predict_rnn(run, get_params, init_run_state, num_hiddens, vocab_si
                     param.grad.data.zero_()
 
             l.backward()
+            # 裁剪梯度
             grad_clipping(params, clipping_theta, device)
+            # 小批量下降，梯度已经裁剪，不做评价，batch_size为1
             sgd(params, lr, 1)
 
             l_sum += l.item() * y.shape[0]
-            # print('before n = %d' % n)
+
             n += y.shape[0]
-            # print('after n = %d' % n)
+
         if (epoch + 1) % pred_period == 0:
             # print('epoch %d\tn = %d' % (epoch, n))
             print('epoch %d, perplexity %f, time %.2f sec' % (epoch + 1, math.exp(l_sum / n), time.time() - start))
             for prefix in prefixes:
-                print(' -', predict_run(prefix, pred_len, run, params, init_run_state, num_hiddens, vocab_size, device,
+                print(' -', predict_run(prefix, pred_len, rnn, params, init_run_state, num_hiddens, vocab_size, device,
                                         idx_to_char, char_to_idx))
 
 
@@ -491,3 +496,120 @@ def train_and_predict_rnn_pytorch(model, num_hiddens, vocab_size, device, corpus
             print('epoch %d, perplexity %f, time %.2f sec' % (epoch + 1, perplexity, time.time() - start))
             for prefix in prefixes:
                 print(' -', predict_rnn_pytorch(prefix, pred_len, model, vocab_size, device, idx_to_char, char_to_idx))
+
+
+# 7.2.3 多维梯度下降
+def train_2d(trainer):
+    x1, x2, s1, s2 = -5, -2, 0, 0
+    results = [(x1, x2)]
+    for i in range(20):
+        x1, x2, s1, s2 = trainer(x1, x2, s1, s2)
+        results.append((x1, x2))
+    print('epoch %d, x1 %f, x2 %f' % (i + 1, x1, x2))
+    return results
+
+
+# 7.2.3 多维梯度下降
+def show_trace_2d(f, results):
+    plt.plot(*zip(*results), '-o', color='#ffff00')
+    x1, x2 = np.meshgrid(np.arange(-5.5, 1.0, 0.1), np.arange(-3.0, 1.0, 0.1))
+    plt.contour(x1, x2, f(x1, x2), colors='#9999FF')
+    plt.xlabel('x1')
+    plt.ylabel('x2')
+    plt.show()
+
+
+# 7.3.1 读取数据
+def get_data_ch7():
+    data = np.genfromtxt('../data/ch7/airfoil_self_noise.dat', delimiter='\t')
+    data = (data - data.mean(axis=0)) / data.std(axis=0)
+    return torch.tensor(data[:1500, :-1],
+                        dtype=torch.float32), torch.tensor(data[:1500, -1],
+                                                           dtype=torch.float32)
+
+# 7.3.1 读取数据
+def train_ch7(optimizer_fn,
+              states,
+              hyperparqms,
+              features,
+              lables,
+              batch_size=10,
+              num_epochs=2):
+    net, loss = linreg, squared_loss
+
+    w = torch.nn.Parameter(torch.tensor(np.random.normal(
+        0, 0.01, size=(features.shape[1], 1)),
+        dtype=torch.float32),
+        requires_grad=True)
+    b = torch.nn.Parameter(torch.zeros(1, dtype=torch.float32),
+                           requires_grad=True)
+
+    def eval_loss():
+        return loss(net(features, w, b), lables).mean().item()
+
+    ls = [eval_loss()]
+
+    data_iter = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
+        features, lables),
+        batch_size,
+        shuffle=True)
+
+    for _ in range(num_epochs):
+        start = time.time()
+        for batch_i, (X, y) in enumerate(data_iter):
+            l = loss(net(X, w, b), y).mean()
+
+            if w.grad is not None:
+                w.grad.data.zero_()
+                b.grad.data.zero_()
+
+            l.backward()
+            optimizer_fn([w, b], states, hyperparqms)
+            if (batch_i + 1) * batch_size % 100 == 0:
+                ls.append(eval_loss())
+    print('loss: %f, %f sec per epoch ' % (ls[-1], time.time() - start))
+    set_figsize()
+    plt.plot(np.linspace(0, num_epochs, len(ls)), ls)
+    plt.xlabel('epoch')
+    plt.ylabel('loss')
+    plt.show()
+
+
+# 7.3.3 简洁实现
+def train_pytorch_ch7(optimizer_fn,
+                      optimizer_hyperparams,
+                      features,
+                      labels=None,
+                      batch_size=10,
+                      num_epochs=2):
+    if labels == None:
+        _, labels = get_data_ch7()
+    net = nn.Sequential(nn.Linear(features.shape[-1], 1))
+    loss = nn.MSELoss()
+    optimizer = optimizer_fn(net.parameters(), **optimizer_hyperparams)
+
+    def eval_loss():
+        return loss(net(features).view(-1), labels).item() / 2
+
+    ls = [eval_loss()]
+    data_iter = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(
+        features, labels),
+        batch_size,
+        shuffle=True)
+
+    for _ in range(num_epochs):
+        start = time.time()
+        for batch_i, (X, y) in enumerate(data_iter):
+            l = loss(net(X).view(-1), y) / 2
+
+            optimizer.zero_grad()
+            l.backward()
+            optimizer.step()
+            if (batch_i + 1) * batch_size % 100 == 0:
+                ls.append(eval_loss())
+    print('loss: %f, %f sec per epoch ' % (ls[-1], time.time() - start))
+    set_figsize()
+    plt.plot(np.linspace(0, num_epochs, len(ls)), ls)
+    plt.xlabel('epoch')
+    plt.ylabel('loss')
+    plt.show()
