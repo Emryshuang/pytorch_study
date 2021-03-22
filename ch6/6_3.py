@@ -1,5 +1,3 @@
-import torch
-import random
 import zipfile
 import d2l_pytorch.d2l as d2l
 

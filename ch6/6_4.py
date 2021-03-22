@@ -52,7 +52,7 @@ def init_run_state(bath_size, num_hiddens, device):
     return (torch.zeros((bath_size, num_hiddens), device=device),)
 
 
-def run(inputs, state, params):
+def rnn(inputs, state, params):
     W_xh, W_hh, b_h, W_hq, b_q = params
     H, = state
     outputs = []
@@ -66,11 +66,11 @@ def run(inputs, state, params):
 state = init_run_state(X.shape[0], num_hiddens, device)
 inputs = d2l.to_onehot(X.to(device), vocab_size)
 params = get_params()
-outputs, state_new = run(inputs, state, params)
+outputs, state_new = rnn(inputs, state, params)
 #print(len(outputs), outputs[0].shape, state_new[0].shape)
 
 # 4 定义预测函数
-#print(d2l.predict_run('分开', 10, run, params, init_run_state, num_hiddens, vocab_size, device, idx_to_char, char_to_idx))
+print(d2l.predict_run('分开', 10, rnn, params, init_run_state, num_hiddens, vocab_size, device, idx_to_char, char_to_idx))
 
 # 5 裁剪梯度
 
@@ -79,16 +79,15 @@ outputs, state_new = run(inputs, state, params)
 # 7 定义模型训练函数
 
 # 8 训练模型并创作歌词
-# 8 训练模型并创作歌词
 
 num_epochs, num_steps, batch_size, lr, clipping_theta = 250, 35, 32, 1e2, 1e-2
 pred_period, pred_len, prefixes = 50, 50, ['分开', '不分开']
 
 
-d2l.train_and_predict_rnn(run, get_params, init_run_state, num_hiddens, vocab_size, device, corpus_indices, idx_to_char,
+d2l.train_and_predict_rnn(rnn, get_params, init_run_state, num_hiddens, vocab_size, device, corpus_indices, idx_to_char,
                           char_to_idx, True, num_epochs, num_steps, lr, clipping_theta, batch_size, pred_period,
                           pred_len, prefixes)
 
-d2l.train_and_predict_rnn(run, get_params, init_run_state, num_hiddens, vocab_size, device, corpus_indices, idx_to_char,
+d2l.train_and_predict_rnn(rnn, get_params, init_run_state, num_hiddens, vocab_size, device, corpus_indices, idx_to_char,
                           char_to_idx, False, num_epochs, num_steps, lr, clipping_theta, batch_size, pred_period,
                           pred_len, prefixes)
